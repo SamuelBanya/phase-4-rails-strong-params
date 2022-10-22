@@ -1,0 +1,933 @@
+* Notes
+<2022-10-21 Fri 18:37>: These are the commands I used to set up this lab successfully:
+#+begin_src bash
+bundle install
+rails db:migrate db:seed
+#+end_src
+
+The following example was provided in the lab as something that we would have before had to do manually to provide each 'symbol' a specific value via the 'params' hash:
+#+begin_src ruby
+BirdWatcher.create(
+  name: params[:name],
+  email: params[:email],
+  profile_image: params[:profile_image],
+  favorite_species: params[:favorite_species],
+  admin: params[:admin]
+)
+#+end_src
+
+You can pass in the entire 'params' hash, but have to do it in a secure fashion to prevent the application from becoming malicious.
+
+I then ran 'rails s' to figure out how to use Postman to create 'strong params'.
+
+I then used the following details in Postman to make a POST request as an example:
+- HTTP Verb: POST
+- URL Used: http://localhost:3000/birds
+- Header > Content-Type: application/json
+- Body > raw > json:
+#+begin_src json
+{
+"name": "Blue Jay",
+"species": "Cyanocitta cristata"
+}
+#+end_src
+
+I then received the following response:
+#+begin_src json
+{
+    "id": 5,
+    "name": "Blue Jay",
+    "species": "Cyanocitta cristata",
+    "created_at": "2022-10-21T23:43:11.004Z",
+    "updated_at": "2022-10-21T23:43:11.004Z"
+}
+#+end_src
+
+I then revised the 'app/controllers/birds_controller.rb' controller file to include just the 'params' hash:
+#+begin_src ruby
+class BirdsController < ApplicationController
+
+  # GET /birds
+  def index
+    birds = Bird.all
+    render json: birds
+  end
+
+  # GET /birds/:id
+  def show
+    bird = Bird.find_by(id: params[:id])
+    if bird
+      render json: bird
+    else
+      render json: { error: "Bird not found" }, status: :not_found
+    end
+  end
+
+  # POST /birds
+  def create
+    # NOTE: This is the previous code without using 'strong params':
+    # bird = Bird.create(name: params[:name], species: params[:species])
+    # render json: bird, status: :created
+    # Using entire 'params' hash:
+    bird = Bird.create(params)
+    render json: bird, status: :created
+  end
+
+end
+#+end_src
+
+I then did the same POST request in Postman using the following details:
+- HTTP Verb: POST
+- URL Used: http://localhost:3000/birds
+- Header > Content-Type: application/json
+- Body > raw > json:
+#+begin_src json
+{
+"name": "Blue Jay",
+"species": "Cyanocitta cristata"
+}
+#+end_src
+
+I then received the related 'mass assignment vulnerability' error from Postman accordingly:
+#+begin_src json
+{
+    "status": 500,
+    "error": "Internal Server Error",
+    "exception": "#<ActiveModel::ForbiddenAttributesError: ActiveModel::ForbiddenAttributesError>",
+    "traces": {
+        "Application Trace": [
+            {
+                "exception_object_id": 7980,
+                "id": 6,
+                "trace": "app/controllers/birds_controller.rb:25:in `create'"
+            }
+        ],
+        "Framework Trace": [
+            {
+                "exception_object_id": 7980,
+                "id": 0,
+                "trace": "activemodel (6.1.3.1) lib/active_model/forbidden_attributes_protection.rb:23:in `sanitize_for_mass_assignment'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 1,
+                "trace": "activemodel (6.1.3.1) lib/active_model/attribute_assignment.rb:34:in `assign_attributes'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 2,
+                "trace": "activerecord (6.1.3.1) lib/active_record/core.rb:496:in `initialize'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 3,
+                "trace": "activerecord (6.1.3.1) lib/active_record/inheritance.rb:72:in `new'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 4,
+                "trace": "activerecord (6.1.3.1) lib/active_record/inheritance.rb:72:in `new'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 5,
+                "trace": "activerecord (6.1.3.1) lib/active_record/persistence.rb:37:in `create'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 7,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/basic_implicit_render.rb:6:in `send_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 8,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/base.rb:228:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 9,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/rendering.rb:30:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 10,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/callbacks.rb:42:in `block in process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 11,
+                "trace": "activesupport (6.1.3.1) lib/active_support/callbacks.rb:98:in `run_callbacks'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 12,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/callbacks.rb:41:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 13,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/rescue.rb:22:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 14,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/instrumentation.rb:34:in `block in process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 15,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications.rb:203:in `block in instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 16,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications/instrumenter.rb:24:in `instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 17,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications.rb:203:in `instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 18,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/instrumentation.rb:33:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 19,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/params_wrapper.rb:249:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 20,
+                "trace": "activerecord (6.1.3.1) lib/active_record/railties/controller_runtime.rb:27:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 21,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/base.rb:165:in `process'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 22,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal.rb:190:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 23,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal.rb:254:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 24,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:50:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 25,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:33:in `serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 26,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:50:in `block in serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 27,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:32:in `each'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 28,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:32:in `serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 29,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:842:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 30,
+                "trace": "rack (2.2.3) lib/rack/etag.rb:27:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 31,
+                "trace": "rack (2.2.3) lib/rack/conditional_get.rb:40:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 32,
+                "trace": "rack (2.2.3) lib/rack/head.rb:12:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 33,
+                "trace": "activerecord (6.1.3.1) lib/active_record/migration.rb:601:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 34,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/callbacks.rb:27:in `block in call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 35,
+                "trace": "activesupport (6.1.3.1) lib/active_support/callbacks.rb:98:in `run_callbacks'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 36,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/callbacks.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 37,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/executor.rb:14:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 38,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/actionable_exceptions.rb:18:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 39,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/debug_exceptions.rb:29:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 40,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/show_exceptions.rb:33:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 41,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:37:in `call_app'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 42,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:26:in `block in call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 43,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:99:in `block in tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 44,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:37:in `tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 45,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:99:in `tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 46,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 47,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/remote_ip.rb:81:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 48,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/request_id.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 49,
+                "trace": "rack (2.2.3) lib/rack/runtime.rb:22:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 50,
+                "trace": "activesupport (6.1.3.1) lib/active_support/cache/strategy/local_cache_middleware.rb:29:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 51,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/executor.rb:14:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 52,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/static.rb:24:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 53,
+                "trace": "rack (2.2.3) lib/rack/sendfile.rb:110:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 54,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/host_authorization.rb:98:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 55,
+                "trace": "rack-cors (1.1.1) lib/rack/cors.rb:100:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 56,
+                "trace": "railties (6.1.3.1) lib/rails/engine.rb:539:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 57,
+                "trace": "puma (5.2.2) lib/puma/configuration.rb:248:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 58,
+                "trace": "puma (5.2.2) lib/puma/request.rb:76:in `block in handle_request'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 59,
+                "trace": "puma (5.2.2) lib/puma/thread_pool.rb:337:in `with_force_shutdown'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 60,
+                "trace": "puma (5.2.2) lib/puma/request.rb:75:in `handle_request'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 61,
+                "trace": "puma (5.2.2) lib/puma/server.rb:431:in `process_client'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 62,
+                "trace": "puma (5.2.2) lib/puma/thread_pool.rb:145:in `block in spawn_thread'"
+            }
+        ],
+        "Full Trace": [
+            {
+                "exception_object_id": 7980,
+                "id": 0,
+                "trace": "activemodel (6.1.3.1) lib/active_model/forbidden_attributes_protection.rb:23:in `sanitize_for_mass_assignment'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 1,
+                "trace": "activemodel (6.1.3.1) lib/active_model/attribute_assignment.rb:34:in `assign_attributes'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 2,
+                "trace": "activerecord (6.1.3.1) lib/active_record/core.rb:496:in `initialize'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 3,
+                "trace": "activerecord (6.1.3.1) lib/active_record/inheritance.rb:72:in `new'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 4,
+                "trace": "activerecord (6.1.3.1) lib/active_record/inheritance.rb:72:in `new'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 5,
+                "trace": "activerecord (6.1.3.1) lib/active_record/persistence.rb:37:in `create'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 6,
+                "trace": "app/controllers/birds_controller.rb:25:in `create'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 7,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/basic_implicit_render.rb:6:in `send_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 8,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/base.rb:228:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 9,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/rendering.rb:30:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 10,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/callbacks.rb:42:in `block in process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 11,
+                "trace": "activesupport (6.1.3.1) lib/active_support/callbacks.rb:98:in `run_callbacks'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 12,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/callbacks.rb:41:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 13,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/rescue.rb:22:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 14,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/instrumentation.rb:34:in `block in process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 15,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications.rb:203:in `block in instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 16,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications/instrumenter.rb:24:in `instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 17,
+                "trace": "activesupport (6.1.3.1) lib/active_support/notifications.rb:203:in `instrument'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 18,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/instrumentation.rb:33:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 19,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal/params_wrapper.rb:249:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 20,
+                "trace": "activerecord (6.1.3.1) lib/active_record/railties/controller_runtime.rb:27:in `process_action'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 21,
+                "trace": "actionpack (6.1.3.1) lib/abstract_controller/base.rb:165:in `process'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 22,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal.rb:190:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 23,
+                "trace": "actionpack (6.1.3.1) lib/action_controller/metal.rb:254:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 24,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:50:in `dispatch'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 25,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:33:in `serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 26,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:50:in `block in serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 27,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:32:in `each'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 28,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/journey/router.rb:32:in `serve'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 29,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/routing/route_set.rb:842:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 30,
+                "trace": "rack (2.2.3) lib/rack/etag.rb:27:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 31,
+                "trace": "rack (2.2.3) lib/rack/conditional_get.rb:40:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 32,
+                "trace": "rack (2.2.3) lib/rack/head.rb:12:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 33,
+                "trace": "activerecord (6.1.3.1) lib/active_record/migration.rb:601:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 34,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/callbacks.rb:27:in `block in call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 35,
+                "trace": "activesupport (6.1.3.1) lib/active_support/callbacks.rb:98:in `run_callbacks'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 36,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/callbacks.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 37,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/executor.rb:14:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 38,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/actionable_exceptions.rb:18:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 39,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/debug_exceptions.rb:29:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 40,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/show_exceptions.rb:33:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 41,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:37:in `call_app'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 42,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:26:in `block in call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 43,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:99:in `block in tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 44,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:37:in `tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 45,
+                "trace": "activesupport (6.1.3.1) lib/active_support/tagged_logging.rb:99:in `tagged'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 46,
+                "trace": "railties (6.1.3.1) lib/rails/rack/logger.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 47,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/remote_ip.rb:81:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 48,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/request_id.rb:26:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 49,
+                "trace": "rack (2.2.3) lib/rack/runtime.rb:22:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 50,
+                "trace": "activesupport (6.1.3.1) lib/active_support/cache/strategy/local_cache_middleware.rb:29:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 51,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/executor.rb:14:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 52,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/static.rb:24:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 53,
+                "trace": "rack (2.2.3) lib/rack/sendfile.rb:110:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 54,
+                "trace": "actionpack (6.1.3.1) lib/action_dispatch/middleware/host_authorization.rb:98:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 55,
+                "trace": "rack-cors (1.1.1) lib/rack/cors.rb:100:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 56,
+                "trace": "railties (6.1.3.1) lib/rails/engine.rb:539:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 57,
+                "trace": "puma (5.2.2) lib/puma/configuration.rb:248:in `call'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 58,
+                "trace": "puma (5.2.2) lib/puma/request.rb:76:in `block in handle_request'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 59,
+                "trace": "puma (5.2.2) lib/puma/thread_pool.rb:337:in `with_force_shutdown'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 60,
+                "trace": "puma (5.2.2) lib/puma/request.rb:75:in `handle_request'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 61,
+                "trace": "puma (5.2.2) lib/puma/server.rb:431:in `process_client'"
+            },
+            {
+                "exception_object_id": 7980,
+                "id": 62,
+                "trace": "puma (5.2.2) lib/puma/thread_pool.rb:145:in `block in spawn_thread'"
+            }
+        ]
+    }
+}
+#+end_src
+
+I then edited the 'app/controllers/birds_controller.rb' controller file to use 'strong params' via 'params.permit()' accordingly:
+#+begin_src ruby
+class BirdsController < ApplicationController
+
+  # GET /birds
+  def index
+    birds = Bird.all
+    render json: birds
+  end
+
+  # GET /birds/:id
+  def show
+    bird = Bird.find_by(id: params[:id])
+    if bird
+      render json: bird
+    else
+      render json: { error: "Bird not found" }, status: :not_found
+    end
+  end
+
+  # POST /birds
+  def create
+    # NOTE: This is the previous code without using 'strong params':
+    # bird = Bird.create(name: params[:name], species: params[:species])
+    # render json: bird, status: :created
+    # Using entire 'params' hash:
+    bird = Bird.create(params.permit(:name, :species))
+    render json: bird, status: :created
+  end
+
+end
+#+end_src
+
+I then attempted to make the same Postman request above, and received this successful JSON response:
+#+begin_src json
+{
+    "id": 8,
+    "name": "Blue Jay",
+    "species": "Cyanocitta cristata",
+    "created_at": "2022-10-21T23:51:34.804Z",
+    "updated_at": "2022-10-21T23:51:34.804Z"
+}
+#+end_src
+
+The fact that only the values for the ':name' and ':species' symbols were allowed are evident in the log results for the POST request itself:
+#+begin_src bash
+Started POST "/birds" for ::1 at 2022-10-21 18:51:34 -0500
+   (0.0ms)  SELECT sqlite_version(*)
+Processing by BirdsController#create as */*
+  Parameters: {"name"=>"Blue Jay", "species"=>"Cyanocitta cristata", "bird"=>{"name"=>"Blue Jay", "species"=>"Cyanocitta cristata"}}
+Unpermitted parameter: :bird
+  TRANSACTION (0.0ms)  begin transaction
+  ↳ app/controllers/birds_controller.rb:25:in `create'
+  Bird Create (0.5ms)  INSERT INTO "birds" ("name", "species", "created_at", "updated_at") VALUES (?, ?, ?, ?)  [["name", "Blue Jay"], ["species", "Cyanocitta cristata"], ["created_at", "2022-10-21 23:51:34.804047"], ["updated_at", "2022-10-21 23:51:34.804047"]]
+  ↳ app/controllers/birds_controller.rb:25:in `create'
+  TRANSACTION (1.3ms)  commit transaction
+  ↳ app/controllers/birds_controller.rb:25:in `create'
+Completed 201 Created in 8ms (Views: 0.2ms | ActiveRecord: 2.5ms | Allocations: 3587)
+#+end_src
+
+I then refactored the 'strong params' section into its own 'private' method called 'bird_params' within the 'app/controllers/birds_controller.rb' controller file:
+#+begin_src ruby
+class BirdsController < ApplicationController
+
+  # GET /birds
+  def index
+    birds = Bird.all
+    render json: birds
+  end
+
+  # GET /birds/:id
+  def show
+    bird = Bird.find_by(id: params[:id])
+    if bird
+      render json: bird
+    else
+      render json: { error: "Bird not found" }, status: :not_found
+    end
+  end
+
+  # POST /birds
+  def create
+    # NOTE: This is the previous code without using 'strong params':
+    # bird = Bird.create(name: params[:name], species: params[:species])
+    # render json: bird, status: :created
+    # Using entire 'params' hash:
+    # NOTE: This is the previous version that does NOT use the 'private' method of using 'strong params'
+    # bird = Bird.create(params.permit(:name, :species))
+    bird = Bird.create(bird_params)
+    render json: bird, status: :created
+  end
+
+  private
+
+  def bird_params
+    params.permit(:name, :species)
+  end
+
+end
+#+end_src
+
+
+I then ran the POST request again in Postman, and received yet another successful response:
+#+begin_src json
+{
+    "id": 9,
+    "name": "Blue Jay",
+    "species": "Cyanocitta cristata",
+    "created_at": "2022-10-21T23:56:26.176Z",
+    "updated_at": "2022-10-21T23:56:26.176Z"
+}
+#+end_src
+
+I also noticed that the resulting 'params' hash in the resulting logs from the server show an embedded 'bird' key that contains the nested JSON parameters:
+#+begin_src bash
+Started POST "/birds" for ::1 at 2022-10-21 19:01:58 -0500
+   (0.1ms)  SELECT sqlite_version(*)
+Processing by BirdsController#create as */*
+  Parameters: {"name"=>"Blue Jay", "species"=>"Cyanocitta cristata", "bird"=>{"name"=>"Blue Jay", "species"=>"Cyanocitta cristata"}}
+#+end_src
+
+I then further refactored the 'app/controllers/birds_controller.rb' controller file by using 'wrap_parameters' at the very top of the Controller file to remove the 'wrap_parameters' feature showed above:
+#+begin_src ruby
+class BirdsController < ApplicationController
+  wrap_parameters format: []
+
+  # GET /birds
+  def index
+    birds = Bird.all
+    render json: birds
+  end
+
+  # GET /birds/:id
+  def show
+    bird = Bird.find_by(id: params[:id])
+    if bird
+      render json: bird
+    else
+      render json: { error: "Bird not found" }, status: :not_found
+    end
+  end
+
+  # POST /birds
+  def create
+    # NOTE: This is the previous code without using 'strong params':
+    # bird = Bird.create(name: params[:name], species: params[:species])
+    # render json: bird, status: :created
+    # Using entire 'params' hash:
+    # NOTE: This is the previous version that does NOT use the 'private' method of using 'strong params'
+    # bird = Bird.create(params.permit(:name, :species))
+    bird = Bird.create(bird_params)
+    render json: bird, status: :created
+  end
+
+  private
+
+  def bird_params
+    params.permit(:name, :species)
+  end
+
+end
+#+end_src
+
+NOTE: Apparently you can ALSO make this note on ALL controllers by modifying the 'config/initializers/wrap_parameters.rb' file with the same exact contents:
+#+begin_src ruby
+ActiveSupport.on_load(:action_controller) do
+  wrap_parameters format: []
+end
+#+end_src
+
+The result is that the resulting JSON object created from another Postman request does NOT have the 'wrap_parameters' present aka the 'bird' key within the logs itself:
+
+Resulting JSON object from Postman:
+#+begin_src json
+{
+    "id": 13,
+    "name": "Blue Jay",
+    "species": "Cyanocitta cristata",
+    "created_at": "2022-10-22T00:03:33.784Z",
+    "updated_at": "2022-10-22T00:03:33.784Z"
+}
+#+end_src
+
+Result displayed within the logs for the 'rails s' server:
+#+begin_src bash
+  Parameters: {"name"=>"Blue Jay", "species"=>"Cyanocitta cristata"}
+#+end_src
+
+Answers To "Check Your Understanding":
+- Q1. What is the mass assignment vulnerability?
+- Answer: The 'mass assignment vulnerability' basically means that if you allow a user to utilize the entire 'params' hash, they will be able to provide whatever values they want, ex: increase money in their banking account, or deliberately / maliciously add  sensitive data
+- Q2. What security precaution is built in to Rails to protect against this vulnerability?
+- Answer: There is a related 'mass assignment vulnerability' error that prevents you from doing this action
+- Q3. What two approaches can we use to handle parameters safely?
+- Answer: 1. You can utilize use 'params.permit()' to selectively choose what specific 'symbol' values you would accept within the 'params' hash that the user provides
+- Answer: 2. You can utilize a private method to contain the 'params.permit()' method so its not publically accessible outside of the Ruby class itself
